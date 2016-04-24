@@ -8,7 +8,7 @@
   
   <meta name="author" content="Randal S. Olson">
   
-  <title>RandomizedPCA - TPOT</title>
+  <title>FastICA - TPOT</title>
   
 
   <link rel="shortcut icon" href="../../../../img/favicon.ico">
@@ -23,9 +23,9 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "RandomizedPCA";
-    var mkdocs_page_input_path = "documentation/pipeline_operators/decomposition/RandomizedPCA.md";
-    var mkdocs_page_url = "/documentation/pipeline_operators/decomposition/RandomizedPCA/";
+    var mkdocs_page_name = "FastICA";
+    var mkdocs_page_input_path = "documentation/pipeline_operators/decomposition/FastICA.md";
+    var mkdocs_page_url = "/documentation/pipeline_operators/decomposition/FastICA/";
   </script>
   
   <script src="../../../../js/jquery-2.1.1.min.js"></script>
@@ -277,12 +277,19 @@
 
         
             
+    <li class="toctree-l1 ">
+        <a class="" href="../RandomizedPCA/">RandomizedPCA</a>
+        
+    </li>
+
+        
+            
     <li class="toctree-l1 current">
-        <a class="current" href="./">RandomizedPCA</a>
+        <a class="current" href="./">FastICA</a>
         
             <ul>
             
-                <li class="toctree-l3"><a href="#randomized-principal-component-analysis">Randomized Principal Component Analysis</a></li>
+                <li class="toctree-l3"><a href="#fast-algorithm-for-independent-component-analysis">Fast algorithm for Independent Component Analysis</a></li>
                 
                     <li><a class="toctree-l4" href="#dependencies">Dependencies</a></li>
                 
@@ -294,13 +301,6 @@
                 
             
             </ul>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../FastICA/">FastICA</a>
         
     </li>
 
@@ -381,7 +381,7 @@
         
       
     
-    <li>RandomizedPCA</li>
+    <li>FastICA</li>
     <li class="wy-breadcrumbs-aside">
       
         
@@ -395,19 +395,19 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="randomized-principal-component-analysis">Randomized Principal Component Analysis</h1>
+                <h1 id="fast-algorithm-for-independent-component-analysis">Fast algorithm for Independent Component Analysis</h1>
 <hr />
-<p>Uses Scikit-learn's RandomizedPCA to transform the feature set.</p>
+<p>Uses Scikit-learn's FastICA to transform the feature set.</p>
 <h2 id="dependencies">Dependencies</h2>
-<pre><code>sklearn.decomposition.RandomizedPCA
+<pre><code>sklearn.decomposition.FastICA
 </code></pre>
 <h2 id="parameters">Parameters</h2>
 <pre><code>input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
     Input DataFrame to scale
 n_components: int
-    The number of components to keep
-iterated_power: int
-    Number of iterations for the power method. [1, 10]
+        The number of components to keep
+tol: float
+    Tolerance on update at each iteration.
 </code></pre>
 <h2 id="returns">Returns</h2>
 <pre><code>modified_df: pandas.DataFrame {n_samples, n_components + ['guess', 'group', 'class']}
@@ -418,24 +418,22 @@ iterated_power: int
 import pandas as pd
 from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.decomposition import RandomizedPCA
+from sklearn.decomposition import FastICA
 
 # NOTE: Make sure that the class is labeled 'class' in the data file
 tpot_data = pd.read_csv('PATH/TO/DATA/FILE', sep='COLUMN_SEPARATOR')
 training_indices, testing_indices = next(iter(StratifiedShuffleSplit(tpot_data['class'].values, n_iter=1, train_size=0.75, test_size=0.25)))
 
-# Use Scikit-learn's RandomizedPCA to transform the feature set
-training_features = tpot_data.loc[training_indices].drop('class', axis=1)
+# Use Scikit-learn's FastICA to transform the feature set
+training_features = {INPUT_DF}.loc[training_indices].drop('class', axis=1)
 
 if len(training_features.columns.values) &gt; 0:
-    # RandomizedPCA must be fit on only the training data
-    pca = RandomizedPCA(n_components=1, iterated_power=10)
-    pca.fit(training_features.values.astype(np.float64))
-    transformed_features = pca.transform(tpot_data.drop('class', axis=1).values.astype(np.float64))
-
-    tpot_data_classes = tpot_data['class'].values
+    # FastICA must be fit on only the training data
+    ica = FastICA(n_components=2, tol=0.1, random_state=42)
+    ica.fit(training_features.values.astype(np.float64))
+    transformed_features = ica.transform(tpot_data.drop('class', axis=1).values.astype(np.float64))
     result1 = pd.DataFrame(data=transformed_features)
-    result1['class'] = tpot_data_classes
+    result1['class'] = tpot_data['class'].values
 else:
     result1 = tpot_data.copy()
 
@@ -455,10 +453,10 @@ result2['dtc1-classification'] = dtc1.predict(result2.drop('class', axis=1).valu
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../FastICA/" class="btn btn-neutral float-right" title="FastICA">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../../kernel_approximation/RBFSampler/" class="btn btn-neutral float-right" title="RBFSampler">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../../feature_selection/RFE/" class="btn btn-neutral" title="RFE"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../RandomizedPCA/" class="btn btn-neutral" title="RandomizedPCA"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -488,10 +486,10 @@ result2['dtc1-classification'] = dtc1.predict(result2.drop('class', axis=1).valu
           <a href="https://github.com/rhiever/tpot" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../../feature_selection/RFE/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../RandomizedPCA/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../FastICA/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../../kernel_approximation/RBFSampler/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

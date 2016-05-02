@@ -421,11 +421,28 @@ GitHub:</p>
 <pre><code>  $ git checkout -b my-contribution
 </code></pre>
 </li>
-</ol>
-<p>and start making changes. Never work in the <code>master</code> branch!</p>
-<ol>
-<li>Work on this copy on your computer using Git to do the version
-   control. When you're done editing, do:<pre><code>  $ git add modified_files
+<li>
+<p>Make sure your local environment is setup correctly for development. Installation instructions are almost identical to <a href="../installing/">the user instructions</a> except that TPOT should <em>not</em> be installed. If you have TPOT installed on your computer then make sure you are using a virtual environment (as detailed in the instructions) that does not have TPOT installed. Furthermore, you should make sure you have installed the <code>nose</code> package into your development environment so that you can test changes locally.</p>
+<pre><code>  $ conda install nose
+</code></pre>
+</li>
+<li>
+<p>Start making changes on your newly created branch, remembering to never work on the <code>master</code> branch! Work on this copy on your computer using Git to do the version control.</p>
+</li>
+<li>
+<p>Once some changes are saved locally, you can use your tweaked version of TPOT by navigating to the project's base directory and running TPOT directly from the command line:</p>
+<pre><code>  $ python -m tpot.tpot
+</code></pre>
+<p>or by running script that imports and uses the TPOT module with code similar to <code>from tpot import TPOT</code></p>
+</li>
+<li>
+<p>To check your changes haven't broken any existing tests and to check new tests you've added pass run the following (note, you must have the <code>nose</code> package installed within your dev environment for this to work):</p>
+<pre><code>  $ nosetests -s -v
+</code></pre>
+</li>
+<li>
+<p>When you're done editing and local testing, do:</p>
+<pre><code>  $ git add modified_files
   $ git commit
 </code></pre>
 </li>
@@ -433,9 +450,7 @@ GitHub:</p>
 <p>to record your changes in Git, then push them to GitHub with:</p>
 <pre><code>      $ git push -u origin my-contribution
 </code></pre>
-<p>Finally, go to the web page of your fork of the TPOT repo,
-and click 'Pull Request' (PR) to send your changes to the maintainers for
-review. This will send an email to the maintainers.</p>
+<p>Finally, go to the web page of your fork of the TPOT repo, and click 'Pull Request' (PR) to send your changes to the maintainers for review. This will start the CI server to check all the project's unit tests run and send an email to the maintainers.</p>
 <p>(If any of the above seems like magic to you, then look up the 
 <a href="http://git-scm.com/documentation">Git documentation</a> on the web.)</p>
 <h2 id="before-submitting-your-pull-request">Before submitting your pull request</h2>

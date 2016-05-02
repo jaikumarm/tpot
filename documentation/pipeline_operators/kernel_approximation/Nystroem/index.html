@@ -412,16 +412,18 @@
 <pre><code>input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
     Input DataFrame to scale
 kernel: int
-    index of kernel type to use
+    Kernel type is selected from scikit-learn's provided types:
+        'sigmoid', 'polynomial', 'additive_chi2', 'poly', 'laplacian', 'cosine', 'linear', 'rbf', 'chi2'
+
+    Input integer is used to select one of the above strings.
 gamma: float
     Gamma parameter for the kernels.
 n_components: int
     The number of components to keep
 </code></pre>
 <h2 id="returns">Returns</h2>
-<pre><code>modified_df: pandas.DataFrame {n_samples, n_components + ['guess', 'group', 'class']}
-    Returns a DataFrame containing the transformed features
-</code></pre>
+<p>modified_df: pandas.DataFrame {n_samples, n_components + ['guess', 'group', 'class']}
+    Returns a DataFrame containing the transformed features</p>
 <h2 id="example-exported-code">Example Exported Code</h2>
 <pre><code class="Python">import numpy as np
 import pandas as pd

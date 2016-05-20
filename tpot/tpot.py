@@ -47,6 +47,7 @@ from update_checker import update_check
 
 from ._version import __version__
 from .export_utils import *
+from .operators import Operator
 
 import deap
 from deap import algorithms
@@ -120,41 +121,21 @@ class TPOT(object):
         self.non_feature_columns = ['class', 'group', 'guess']
 
         if random_state > 0:
+            # Use random_state for seeding RNGs
             random.seed(random_state)
             np.random.seed(random_state)
 
+            # Use random_state for all operators
+            Operator.default_seed = random_state
+
         self._pset = gp.PrimitiveSetTyped('MAIN', [pd.DataFrame], pd.DataFrame)
 
-        # Machine learning model operators
-        self._pset.addPrimitive(self._decision_tree, [pd.DataFrame, int, int], pd.DataFrame)
-        self._pset.addPrimitive(self._random_forest, [pd.DataFrame, int], pd.DataFrame)
-        self._pset.addPrimitive(self._logistic_regression, [pd.DataFrame, float], pd.DataFrame)
-        # Temporarily remove SVC -- badly overfits on multiclass data sets
-        # self._pset.addPrimitive(self._svc, [pd.DataFrame, float], pd.DataFrame)
-        self._pset.addPrimitive(self._knnc, [pd.DataFrame, int], pd.DataFrame)
-        self._pset.addPrimitive(self._xgradient_boosting, [pd.DataFrame, float, int], pd.DataFrame)
+        import pdb; pdb.set_trace()
 
-        # Feature preprocessing operators
-        self._pset.addPrimitive(self._combine_dfs, [pd.DataFrame, pd.DataFrame], pd.DataFrame)
-        self._pset.addPrimitive(self._variance_threshold, [pd.DataFrame, float], pd.DataFrame)
-        self._pset.addPrimitive(self._standard_scaler, [pd.DataFrame], pd.DataFrame)
-        self._pset.addPrimitive(self._robust_scaler, [pd.DataFrame], pd.DataFrame)
-        self._pset.addPrimitive(self._min_max_scaler, [pd.DataFrame], pd.DataFrame)
-        self._pset.addPrimitive(self._max_abs_scaler, [pd.DataFrame], pd.DataFrame)
-        self._pset.addPrimitive(self._binarizer, [pd.DataFrame, float], pd.DataFrame)
-        self._pset.addPrimitive(self._polynomial_features, [pd.DataFrame], pd.DataFrame)
-        self._pset.addPrimitive(self._pca, [pd.DataFrame, int, int], pd.DataFrame)
-        self._pset.addPrimitive(self._rbf, [pd.DataFrame, float, int], pd.DataFrame)
-        self._pset.addPrimitive(self._fast_ica, [pd.DataFrame, int, float], pd.DataFrame)
-        self._pset.addPrimitive(self._feat_agg, [pd.DataFrame, int, int, int], pd.DataFrame)
-        self._pset.addPrimitive(self._nystroem, [pd.DataFrame, int, float, int], pd.DataFrame)
-        self._pset.addPrimitive(self._zero_count, [pd.DataFrame], pd.DataFrame)
-
-        # Feature selection operators
-        self._pset.addPrimitive(self._select_kbest, [pd.DataFrame, int], pd.DataFrame)
-        self._pset.addPrimitive(self._select_fwe, [pd.DataFrame, float], pd.DataFrame)
-        self._pset.addPrimitive(self._select_percentile, [pd.DataFrame, int], pd.DataFrame)
-        self._pset.addPrimitive(self._rfe, [pd.DataFrame, int, float], pd.DataFrame)
+        # Load operators
+        for op in Operator.inheritors():
+            print('Adding {} to Primitives'.format(op.__name__))
+            self._pset.addPrimitive(op(), *op.parameter_types())
 
         # Mathematical operators
         self._pset.addPrimitive(operator.add, [int, int], int)
@@ -404,97 +385,6 @@ class TPOT(object):
         training_testing_data.rename(columns=new_col_names, inplace=True)
 
         return self._evaluate_individual(self._optimized_pipeline, training_testing_data)[1]
-
-    def export(self, output_file_name):
-        """Exports the current optimized pipeline as Python code
-
-        Parameters
-        ----------
-        output_file_name: string
-            String containing the path and file name of the desired output file
-
-        Returns
-        -------
-        None
-
-        """
-        if self._optimized_pipeline is None:
-            raise ValueError('A pipeline has not yet been optimized. Please call fit() first.')
-
-        exported_pipeline = self._optimized_pipeline
-
-        # Replace all of the mathematical operators with their results. Check export_utils.py for details.
-        exported_pipeline = replace_mathematical_operators(exported_pipeline)
-
-        # Unroll the nested function calls into serial code. Check export_utils.py for details.
-        exported_pipeline, pipeline_list = unroll_nested_fuction_calls(exported_pipeline)
-
-        # Have the exported code import all of the necessary modules and functions
-        pipeline_text = generate_import_code(pipeline_list)
-
-        # Replace the function calls with their corresponding Python code. Check export_utils.py for details.
-        pipeline_text += replace_function_calls(pipeline_list)
-
-        with open(output_file_name, 'w') as output_file:
-            output_file.write(pipeline_text)
-
-    def _decision_tree(self, input_df, max_features, max_depth):
-        """Fits a decision tree classifier
-
-        Parameters
-        ----------
-        input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
-            Input DataFrame for fitting the decision tree
-        max_features: int
-            Number of features used to fit the decision tree; must be a positive value
-        max_depth: int
-            Maximum depth of the decision tree; must be a positive value
-
-        Returns
-        -------
-        input_df: pandas.DataFrame {n_samples, n_features+['guess', 'group', 'class', 'SyntheticFeature']}
-            Returns a modified input DataFrame with the guess column updated according to the classifier's predictions.
-            Also adds the classifiers's predictions as a 'SyntheticFeature' column.
-
-        """
-        if max_features < 1:
-            max_features = 'auto'
-        elif max_features == 1:
-            max_features = None
-        else:
-            max_features = min(max_features, len(input_df.columns) - 3)
-
-        if max_depth < 1:
-            max_depth = None
-
-        return self._train_model_and_predict(input_df, DecisionTreeClassifier, max_features=max_features, max_depth=max_depth, random_state=42)
-
-    def _random_forest(self, input_df, max_features):
-        """Fits a random forest classifier
-
-        Parameters
-        ----------
-        input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
-            Input DataFrame for fitting the random forest
-        max_features: int
-            Number of features used to fit the decision tree; must be a positive value
-
-        Returns
-        -------
-        input_df: pandas.DataFrame {n_samples, n_features+['guess', 'group', 'class', 'SyntheticFeature']}
-            Returns a modified input DataFrame with the guess column updated according to the classifier's predictions.
-            Also adds the classifiers's predictions as a 'SyntheticFeature' column.
-
-        """
-        if max_features < 1:
-            max_features = 'auto'
-        elif max_features == 1:
-            max_features = None
-        elif max_features > len(input_df.columns) - 3:
-            max_features = len(input_df.columns) - 3
-
-        return self._train_model_and_predict(input_df, RandomForestClassifier, n_estimators=500,
-                                             max_features=max_features, random_state=42, n_jobs=-1)
 
     def _logistic_regression(self, input_df, C):
         """Fits a logistic regression classifier

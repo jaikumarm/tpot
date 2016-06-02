@@ -24,9 +24,9 @@ import pandas as pd
 from tpot.operators import Operator
 
 class Preprocessor(Operator):
-    """Parent class for Preprocessors for TPOT"""
-    def __init__(self, import_hash):
-        super(self.__class__, self).__init__(import_hash)
+    """Parent class for Feature Preprocessors in TPOT"""
+    def __init__(self):
+        super(self.__class__, self).__init__()
 
     def _call(input_df, *args, **kwargs):
         # Calculate arguments to be passed directly to sklearn
@@ -62,9 +62,15 @@ class Preprocessor(Operator):
             modified_df: pd.DataFrame
 
         """
-        op = self.sklearn_class(**operator_args)
+        # Send arguments to preprocessor but also attempt to add in default
+        # arguments defined in the Operator class
+        op = self._apply_default_params(operator_args)
+
         op.fit(self.training_features.values.astype(np.float64))
         transformed_features = op.transform(input_df.drop(self.non_feature_columns, axis=1).\
             values.astype(np.float64))
 
         return pd.DataFrame(data=transformed_features)
+
+    def export(self, *args, **kwargs):
+        pass

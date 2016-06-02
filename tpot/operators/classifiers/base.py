@@ -23,17 +23,17 @@ import hashlib
 from tpot.operators import Operator
 
 class Classifier(Operator):
-    """Parent class for classifiers for TPOT"""
-    def __init__(self, import_hash):
-        super(self.__class__, self).__init__(import_hash)
+    """Parent class for classifiers in TPOT"""
+    def __init__(self):
+        super(self.__class__, self).__init__()
 
     def _call(self, input_df, *args, **kwargs):
         # Calculate arguments to be passed directly to sklearn
         operator_args = self.preprocess_args(*args, **kwargs)
 
-        return self._train_model_and_predict(input_df, operator_args)
+        return self._train_and_predict(input_df, operator_args)
 
-    def _train_model_and_predict(self, input_df, operator_args):
+    def _train_and_predict(self, input_df, operator_args):
         """Fits an arbitrary sklearn classifier model with a set of keyword parameters
 
         Parameters
@@ -52,13 +52,12 @@ class Classifier(Operator):
 
         """
 
-        # Try to seed the random_state parameter if the model accepts it.
-        try:
-            clf = model(random_state=self.default_seed, **operator_args)
-            clf.fit(self.training_features, self.training_classes)
-        except TypeError:
-            clf = model(**operator_args)
-            clf.fit(self.training_features, self.training_classes)
+        # Send arguments to classifier but also attempt to add in default
+        # arguments defined in the Operator class
+        clf = self._apply_default_params(operator_args)
+
+        # Fit classifier to the data set
+        clf.fit(self.training_features, self.training_classes)
 
         all_features = input_df.drop(self.non_feature_columns, axis=1).values
         input_df.loc[:, 'guess'] = clf.predict(all_features)
@@ -66,13 +65,15 @@ class Classifier(Operator):
         # Store the guesses as a synthetic feature
         return self._add_synth_feature(input_df, operator_args)
 
-    def _add_synth_feature(self, input_df):
-        sf_hash = '-'.join(sorted(input_df.columns.values))
-
-        # Use the classifier object's class name in the synthetic feature
-        sf_hash += '{}'.format(self.sklearn_class.__class__) + '-'.join(kwargs)
+    def _add_synth_feature(self, input_df, operator_args):
+        sf_hash = '-'.join(sorted(input_df.columns.values)) + \
+                  str(self.sklearn_class.__class__) + \
+                  '-'.join(operator_args)
         sf_identifier = 'SyntheticFeature-{}'.format(hashlib.sha224(sf_hash.encode('UTF-8')).hexdigest())
 
         input_df.loc[:, sf_identifier] = input_df['guess'].values
 
         return input_df
+
+    def export(self, *args, **kwargs):
+        pass

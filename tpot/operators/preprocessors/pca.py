@@ -36,7 +36,7 @@ class PCA(Preprocessor):
     sklearn_class = RandomizedPCA
 
     def __init__(self):
-        super(self.__class__, self).__init__(import_hash=self.import_hash)
+        super(self.__class__, self).__init__()
 
     def preprocess_args(n_components: int, iterated_power: int):
         if n_components < 1:

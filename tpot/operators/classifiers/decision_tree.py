@@ -36,7 +36,7 @@ class DecisionTree(Classifier):
     sklearn_class = DecisionTreeClassifier
 
     def __init__(self):
-        super(self.__class__, self).__init__(import_hash=self.import_hash)
+        super(self.__class__, self).__init__()
 
     def preprocess_args(max_features: int, max_depth: int):
         if max_features <= 1:

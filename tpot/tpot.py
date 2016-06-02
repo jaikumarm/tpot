@@ -130,11 +130,8 @@ class TPOT(object):
 
         self._pset = gp.PrimitiveSetTyped('MAIN', [pd.DataFrame], pd.DataFrame)
 
-        import pdb; pdb.set_trace()
-
         # Load operators
         for op in Operator.inheritors():
-            print('Adding {} to Primitives'.format(op.__name__))
             self._pset.addPrimitive(op(), *op.parameter_types())
 
         # Mathematical operators

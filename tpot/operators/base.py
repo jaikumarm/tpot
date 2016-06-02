@@ -47,6 +47,7 @@ class Operator(object):
     def export(self, *args, **kwargs):
         pass
 
+    @property
     def parameter_types(self):
         arg_types = [pd.DataFrame] # First argument is always a DataFrame
 
@@ -61,7 +62,7 @@ class Operator(object):
             # Raise RuntimeError if a type is not annotated
             if annotation is signature.empty:
                 raise RuntimeError('Undocumented argument type for {} in operator {}'.\
-                    format(param, self.preprocess_args.__self__.__class__))
+                    format(param, self.sklearn_class.__class__.__name__))
             else:
                 arg_types.append(annotation)
 

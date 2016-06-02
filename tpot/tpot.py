@@ -132,7 +132,7 @@ class TPOT(object):
 
         # Load operators
         for op in Operator.inheritors():
-            self._pset.addPrimitive(op(), *op.parameter_types())
+            self._pset.addPrimitive(op(), *op.parameter_types)
 
         # Mathematical operators
         self._pset.addPrimitive(operator.add, [int, int], int)

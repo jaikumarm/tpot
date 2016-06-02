@@ -50,9 +50,9 @@ class Operator(object):
     def parameter_types(self):
         arg_types = [pd.DataFrame] # First argument is always a DataFrame
 
-        # Inspect operator_code function to get parameter information
+        # Inspect preprocess_args function to get parameter information
         # Uses function parameter annotations to determine parameter types
-        operator_parameters = signature(self.operator_code).parameters
+        operator_parameters = signature(self.preprocess_args).parameters
         param_names = list(operator_parameters.keys())
 
         for param in param_names:
@@ -61,7 +61,7 @@ class Operator(object):
             # Raise RuntimeError if a type is not annotated
             if annotation is signature.empty:
                 raise RuntimeError('Undocumented argument type for {} in operator {}'.\
-                    format(param, self.operator_code.__self__.__class__))
+                    format(param, self.preprocess_args.__self__.__class__))
             else:
                 arg_types.append(annotation)
 

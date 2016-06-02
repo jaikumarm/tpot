@@ -45,6 +45,13 @@ class Operator(object):
         # Call child class' call function
         return self._call(input_df, *args, **kwargs)
 
+    @property
+    def __name__(self):
+        """Necessary for deap so that it can generate a string identifier for
+        each opeartor.
+        """
+        return self.__class__.__name__
+
     def _apply_default_params(self, kwargs):
         """Apply defined default parameters to the sklearn class where applicable
         while also integrating specified arguments
@@ -60,7 +67,6 @@ class Operator(object):
 
         return self.sklearn_class(**kwargs)
 
-    @property
     def parameter_types(self):
         """Return tuple of argument types for calling of the operator and the
         return type of the operator.
@@ -93,6 +99,6 @@ class Operator(object):
         # Search two levels deep and report leaves in inheritance tree
         for child in cls.__subclasses__():
             for grandchild in child.__subclasses__():
-                operators.add(grandchild)
+                operators.add(grandchild()) # Instantiate class and append
 
         return operators

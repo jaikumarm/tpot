@@ -64,7 +64,9 @@ class Classifier(Operator):
         return self._add_synth_feature(input_df, operator_args)
 
     def _add_synth_feature(self, input_df, operator_args):
-        sf_hash = '-'.join(sorted(input_df.columns.values)) + \
+        column_names = [str(x) for x in input_df.columns.values.tolist()]
+
+        sf_hash = '-'.join(sorted(column_names)) + \
                   str(self.sklearn_class.__class__) + \
                   '-'.join(operator_args)
         sf_identifier = 'SyntheticFeature-{}'.format(hashlib.sha224(sf_hash.encode('UTF-8')).hexdigest())

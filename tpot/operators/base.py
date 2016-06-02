@@ -28,6 +28,22 @@ class Operator(object):
         self.default_seed = 42 # Default value for random_state when appropriate
         self.non_feature_columns = ['class', 'group', 'guess']
 
+    def __call__(self, input_df, *args, **kwargs):
+        input_df = input_df.copy() # Make a copy of the input dataframe
+
+        self.training_features = input_df.\
+            loc[input_df['group'] == 'training'].\
+            drop(self.non_feature_columns, axis=1).values
+        self.training_classes = input_df.\
+            loc[input_df['group'] == 'training', 'class'].values
+
+        # If there are no features left then there is nothing to do
+        if len(training_features.columns.values) == 0:
+            return input_df
+
+        # Call child class' call function
+        return self._call(input_df, *args, **kwargs)
+
     def export(self, *args, **kwargs):
         pass
 
@@ -37,7 +53,7 @@ class Operator(object):
         # Inspect operator_code function to get parameter information
         # Uses function parameter annotations to determine parameter types
         operator_parameters = signature(self.operator_code).parameters
-        param_names = [key for key in operator_parameters.keys()][1:] # Skip input_df
+        param_names = list(operator_parameters.keys())
 
         for param in param_names:
             annotation = operator_parameters[param].annotation

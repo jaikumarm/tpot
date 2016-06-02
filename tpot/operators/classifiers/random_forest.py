@@ -26,21 +26,24 @@ class RandomForest(Classifier):
 
     Parameters
     ----------
-    input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
-        Input DataFrame for fitting the random forest
     max_features: int
         Number of features used to fit the decision tree; must be a positive value
 
     """
     import_hash = {'sklearn.ensemble': ['RandomForestClassifier']}
+    sklearn_class = RandomForestClassifier
 
     def __init__(self):
         super(self.__class__, self).__init__(import_hash=self.import_hash)
 
-    def operator_code(input_df, max_features: int):
+    def preprocess_args(max_features: int):
         if max_features <= 1:
             max_features = 'auto'
-        elif max_features > len(input_df.columns) - len(self.non_feature_columns):
-            max_features = len(input_df.columns) - len(self.non_feature_columns)
+        elif max_features > len(self.training_features.columns):
+            max_features = len(self.training_features.columns)
 
-        return (RandomForestClassifier, {n_estimators: 500, max_features: max_features, n_jobs: -1})
+        return {
+            'n_estimators': 500,
+            'max_features': max_features,
+            'n_jobs': -1
+        }

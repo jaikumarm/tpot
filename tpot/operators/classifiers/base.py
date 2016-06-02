@@ -18,6 +18,8 @@ with the TPOT library. If not, see http://www.gnu.org/licenses/.
 
 """
 
+import hashlib
+
 from tpot.operators import Operator
 
 class Classifier(Operator):
@@ -25,23 +27,21 @@ class Classifier(Operator):
     def __init__(self, import_hash):
         super(self.__class__, self).__init__(import_hash)
 
-    def __call__(self, input_df, *args, **kwargs):
-        classifier, classifier_kwargs = self.operator_code(input_df, *args, **kwargs)
+    def _call(self, input_df, *args, **kwargs):
+        # Calculate arguments to be passed directly to sklearn
+        operator_args = self.preprocess_args(*args, **kwargs)
 
-        return self._train_model_and_predict(input_df, classifier, **classifier_kwargs)
+        return self._train_model_and_predict(input_df, operator_args)
 
-    def _train_model_and_predict(self, input_df, model, **kwargs):
+    def _train_model_and_predict(self, input_df, operator_args):
         """Fits an arbitrary sklearn classifier model with a set of keyword parameters
 
         Parameters
         ----------
         input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
             Input DataFrame for fitting the k-neares
-        model: sklearn classifier
-            Input model to fit and predict on input_df
-        kwargs: unpacked parameters
-            Input parameters to pass to the model's constructor, does not need
-            to be a dictionary
+        operator_args: dict
+            Input parameters to pass to the model's constructor
 
         Returns
         -------
@@ -51,38 +51,28 @@ class Classifier(Operator):
             classifiers's predictions as a 'SyntheticFeature' column.
 
         """
-        input_df = input_df.copy()
-
-        training_features = input_df.\
-            loc[input_df['group'] == 'training'].\
-            drop(self.non_feature_columns, axis=1).values
-        training_classes = input_df.\
-            loc[input_df['group'] == 'training', 'class'].values
-
-        # If there are no features left (i.e., only 'class', 'group', and
-        # 'guess' remain in the DF), then there is nothing to do
-        if len(training_features.columns) == 0:
-            return input_df
 
         # Try to seed the random_state parameter if the model accepts it.
         try:
-            random_state = self.default_seed
-
-            clf = model(random_state=random_state, **kwargs)
-            clf.fit(training_features, training_classes)
+            clf = model(random_state=self.default_seed, **operator_args)
+            clf.fit(self.training_features, self.training_classes)
         except TypeError:
-            clf = model(**kwargs)
-            clf.fit(training_features, training_classes)
+            clf = model(**operator_args)
+            clf.fit(self.training_features, self.training_classes)
 
         all_features = input_df.drop(self.non_feature_columns, axis=1).values
         input_df.loc[:, 'guess'] = clf.predict(all_features)
 
-        # Also store the guesses as a synthetic feature
+        # Store the guesses as a synthetic feature
+        return self._add_synth_feature(input_df, operator_args)
+
+    def _add_synth_feature(self, input_df):
         sf_hash = '-'.join(sorted(input_df.columns.values))
+
         # Use the classifier object's class name in the synthetic feature
-        sf_hash += '{}'.format(clf.__class__)
-        sf_hash += '-'.join(kwargs)
+        sf_hash += '{}'.format(self.sklearn_class.__class__) + '-'.join(kwargs)
         sf_identifier = 'SyntheticFeature-{}'.format(hashlib.sha224(sf_hash.encode('UTF-8')).hexdigest())
+
         input_df.loc[:, sf_identifier] = input_df['guess'].values
 
         return input_df

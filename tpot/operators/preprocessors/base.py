@@ -18,6 +18,9 @@ with the TPOT library. If not, see http://www.gnu.org/licenses/.
 
 """
 
+import numpy as np
+import pandas as pd
+
 from tpot.operators import Operator
 
 class Preprocessor(Operator):
@@ -25,16 +28,12 @@ class Preprocessor(Operator):
     def __init__(self, import_hash):
         super(self.__class__, self).__init__(import_hash)
 
-    def __call__(input_df, *args, **kwargs):
-        training_features = input_df.loc[input_df['group'] == 'training'].\
-            drop(self.non_feature_columns, axis=1)
+    def _call(input_df, *args, **kwargs):
+        # Calculate arguments to be passed directly to sklearn
+        operator_args = self.preprocess_args(*args, **kwargs)
 
-        # Return input_df if there are no feature columns
-        if len(training_features.columns.values) == 0:
-            return input_df.copy()
-
-        # Run the feature-preprocessor
-        modified_df = self.operator_code(training_features, *args, **kwargs)
+        # Run the feature-preprocessor with args
+        modified_df = self._fit_transform(input_df, operator_args)
 
         # Add non_feature_columns back to DataFrame
         for non_feature_column in self.non_feature_columns:
@@ -48,3 +47,24 @@ class Preprocessor(Operator):
         modified_df.rename(columns=new_col_names, inplace=True)
 
         return modified_df
+
+    def _fit_transform(self, input_df, operator_args):
+        """Run the Preprocessor and return the modified DataFrame
+
+        Parameters
+        ----------
+            input_df: pd.DataFrame
+            operator_args: dict
+                Dictionary of arguments to be passed to the preprocessor
+
+        Returns
+        -------
+            modified_df: pd.DataFrame
+
+        """
+        op = self.sklearn_class(**operator_args)
+        op.fit(self.training_features.values.astype(np.float64))
+        transformed_features = op.transform(input_df.drop(self.non_feature_columns, axis=1).\
+            values.astype(np.float64))
+
+        return pd.DataFrame(data=transformed_features)

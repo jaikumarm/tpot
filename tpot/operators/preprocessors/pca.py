@@ -26,8 +26,6 @@ class PCA(Preprocessor):
 
     Parameters
     ----------
-    input_df: pandas.DataFrame {n_samples, n_features+['class', 'group', 'guess']}
-        Input DataFrame to scale
     n_components: int
         The number of components to keep
     iterated_power: int
@@ -35,22 +33,22 @@ class PCA(Preprocessor):
 
     """
     import_hash = {'sklearn.decomposition': ['RandomizedPCA']}
+    sklearn_class = RandomizedPCA
 
     def __init__(self):
         super(self.__class__, self).__init__(import_hash=self.import_hash)
 
-    def operator_code(input_df, n_components: int, iterated_power: int):
+    def preprocess_args(n_components: int, iterated_power: int):
         if n_components < 1:
             n_components = 1
         else:
-            n_components = min(n_components, len(training_features.columns.values))
+            n_components = min(n_components, len(self.training_features.columns.values))
 
         # Thresholding iterated_power [1, 10]
         iterated_power = min(10, max(1, iterated_power))
 
-        # PCA must be fit on only the training data
-        pca = RandomizedPCA(n_components=n_components, iterated_power=iterated_power, copy=False)
-        pca.fit(training_features.values.astype(np.float64))
-        transformed_features = pca.transform(input_df.drop(self.non_feature_columns, axis=1).values.astype(np.float64))
-
-        return pd.DataFrame(data=transformed_features)
+        return {
+            'n_components': n_components,
+            'iterated_power': iterated_power,
+            'copy': False
+        }

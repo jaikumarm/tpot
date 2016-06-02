@@ -36,13 +36,14 @@ class PCA(Preprocessor):
     sklearn_class = RandomizedPCA
 
     def __init__(self):
-        super(self.__class__, self).__init__()
+        pass
 
-    def preprocess_args(n_components: int, iterated_power: int):
+
+    def preprocess_args(self, n_components: int, iterated_power: int):
         if n_components < 1:
             n_components = 1
         else:
-            n_components = min(n_components, len(self.training_features.columns.values))
+            n_components = min(n_components, len(self.training_features))
 
         # Thresholding iterated_power [1, 10]
         iterated_power = min(10, max(1, iterated_power))

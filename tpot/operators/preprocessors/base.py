@@ -25,8 +25,6 @@ from tpot.operators import Operator
 
 class Preprocessor(Operator):
     """Parent class for Feature Preprocessors in TPOT"""
-    def __init__(self):
-        super(self.__class__, self).__init__()
 
     def _call(input_df, *args, **kwargs):
         # Calculate arguments to be passed directly to sklearn

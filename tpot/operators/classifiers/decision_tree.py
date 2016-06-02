@@ -36,13 +36,13 @@ class DecisionTree(Classifier):
     sklearn_class = DecisionTreeClassifier
 
     def __init__(self):
-        super(self.__class__, self).__init__()
+        pass
 
-    def preprocess_args(max_features: int, max_depth: int):
+    def preprocess_args(self, max_features: int, max_depth: int):
         if max_features <= 1:
             max_features = 'auto'
-        elif max_features > len(self.training_features.columns)
-            max_features = len(self.training_features.columns)
+        elif max_features > len(self.training_features):
+            max_features = len(self.training_features)
 
         max_depth = max(max_depth, 1)
 

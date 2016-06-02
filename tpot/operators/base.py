@@ -19,18 +19,17 @@ with the TPOT library. If not, see http://www.gnu.org/licenses/.
 """
 
 import pandas as pd
-from inspect import signature
+from inspect import signature, Signature
 
 class Operator(object):
     """Base class for operators in TPOT"""
-    def __init__(self):
-        self.non_feature_columns = ['class', 'group', 'guess']
+    non_feature_columns = ['class', 'group', 'guess']
 
-        # Default parameters for sklearn classes
-        self.default_arguments = {
-            'random_state': 42,
-            'n_jobs': -1
-        }
+    # Default parameters for sklearn classes
+    default_arguments = {
+        'random_state': 42,
+        'n_jobs': -1
+    }
 
     def __call__(self, input_df, *args, **kwargs):
         input_df = input_df.copy() # Make a copy of the input dataframe
@@ -40,7 +39,7 @@ class Operator(object):
         self.training_classes = input_df.loc[input_df['group'] == 'training', 'class'].values
 
         # If there are no features left then there is nothing to do
-        if len(training_features.columns.values) == 0:
+        if len(self.training_features) == 0:
             return input_df
 
         # Call child class' call function
@@ -77,7 +76,7 @@ class Operator(object):
             annotation = operator_parameters[param].annotation
 
             # Raise RuntimeError if a type is not annotated
-            if annotation is signature.empty:
+            if annotation == Signature.empty:
                 raise RuntimeError('Undocumented argument type for {} in operator {}'.\
                     format(param, self.sklearn_class.__class__.__name__))
             else:

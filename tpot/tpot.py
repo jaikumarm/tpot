@@ -50,6 +50,7 @@ from update_checker import update_check
 from ._version import __version__
 from .export_utils import unroll_nested_fuction_calls, generate_import_code, replace_function_calls
 from .decorators import _gp_new_generation
+from .parallel_toolbox import ParallelToolbox
 
 import deap
 from deap import algorithms, base, creator, tools, gp
@@ -69,7 +70,7 @@ class TPOT(object):
 
     def __init__(self, population_size=100, generations=100,
                  mutation_rate=0.9, crossover_rate=0.05,
-                 random_state=0, verbosity=0, scoring_function=None,
+                 random_state=0, verbosity=0, multiprocess=False, scoring_function=None,
                  disable_update_check=False):
         """Sets up the genetic programming algorithm for pipeline optimization.
 
@@ -94,6 +95,8 @@ class TPOT(object):
             you run it against the same data set with that seed.
         verbosity: int (default: 0)
             How much information TPOT communicates while it's running. 0 = none, 1 = minimal, 2 = all
+        multiprocess: bool (default: False)
+            Whether or not to multithread the genetic programming process of TPOT
         scoring_function: function (default: balanced accuracy)
             Function used to evaluate the goodness of a given pipeline for the classification problem. By default, balanced class accuracy is used.
         disable_update_check: bool (default: False)
@@ -125,6 +128,7 @@ class TPOT(object):
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.verbosity = verbosity
+        self.multiprocess = multiprocess
 
         self.pbar = None
         self.gp_generation = 0
@@ -198,7 +202,11 @@ class TPOT(object):
         creator.create('FitnessMulti', base.Fitness, weights=(-1.0, 1.0))
         creator.create('Individual', gp.PrimitiveTree, fitness=creator.FitnessMulti)
 
-        self._toolbox = base.Toolbox()
+        if self.multiprocess:
+            self._toolbox = ParallelToolbox()
+        else:
+            self._toolbox = base.Toolbox()
+
         self._toolbox.register('expr', self._gen_grow_safe, pset=self._pset, min_=1, max_=3)
         self._toolbox.register('individual', tools.initIterate, creator.Individual, self._toolbox.expr)
         self._toolbox.register('population', tools.initRepeat, list, self._toolbox.individual)
@@ -271,33 +279,19 @@ class TPOT(object):
 
             pop = self._toolbox.population(n=self.population_size)
 
-            def pareto_eq(ind1, ind2):
-                """Function used to determine whether two individuals are equal on the Pareto front
+            self.hof = tools.ParetoFront(similar=self._pareto_eq)
 
-                Parameters
-                ----------
-                ind1: DEAP individual from the GP population
-                    First individual to compare
-                ind2: DEAP individual from the GP population
-                    Second individual to compare
+            pbar_enabled = (self.verbosity > 1) and (not self.multiprocess)
 
-                Returns
-                ----------
-                individuals_equal: bool
-                    Boolean indicating whether the two individuals are equal on the Pareto front
-
-                """
-                return np.all(ind1.fitness.values == ind2.fitness.values)
-
-            self.hof = tools.ParetoFront(similar=pareto_eq)
-
-            verbose = (self.verbosity == 2)
+            if self.verbosity > 1 and self.multiprocess:
+                print('Progress Bar is disabled during multiprocess fit()')
 
             # Start the progress bar
             num_evaluations = self.population_size * (self.generations + 1)
             self.pbar = tqdm(total=num_evaluations, unit='pipeline', leave=False,
-                             disable=(not verbose), desc='GP Progress')
+                             disable=(not pbar_enabled), desc='GP Progress')
 
+            # Perform GP
             pop, _ = algorithms.eaSimple(population=pop, toolbox=self._toolbox, cxpb=self.crossover_rate,
                                      mutpb=self.mutation_rate, ngen=self.generations,
                                      halloffame=self.hof, verbose=False)
@@ -322,11 +316,29 @@ class TPOT(object):
                         top_score = pipeline_score
                         self._optimized_pipeline = pipeline
 
-            if self.verbosity >= 1 and self._optimized_pipeline:
-                if verbose:  # Add an extra line of spacing if the progress bar was used
+            if self.verbosity > 0 and self._optimized_pipeline:
+                if self.verbosity > 1:  # Add an extra line of spacing if the progress bar was used
                     print()
 
                 print('Best pipeline: {}'.format(self._optimized_pipeline))
+
+    def _pareto_eq(self, ind1, ind2):
+        """Function used to determine whether two individuals are equal on the Pareto front
+
+        Parameters
+        ----------
+        ind1: DEAP individual from the GP population
+            First individual to compare
+        ind2: DEAP individual from the GP population
+            Second individual to compare
+
+        Returns
+        ----------
+        individuals_equal: bool
+            Boolean indicating whether the two individuals are equal on the Pareto front
+
+        """
+        return np.all(ind1.fitness.values == ind2.fitness.values)
 
     def predict(self, testing_features):
         """Uses the optimized pipeline to predict the classes for a feature set.

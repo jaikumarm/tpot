@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
+
 """
-    Unit tests for TPOT.
+Unit tests for TPOT.
 """
 
 from tpot import TPOT

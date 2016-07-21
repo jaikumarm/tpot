@@ -205,7 +205,7 @@ def replace_function_calls(pipeline_list):
                                                                                         OPERATOR_NUM=operator_num)
 
         elif operator_name == '_random_forest':
-            min_weight = min(0.5, max(0., operator[3]))
+            min_weight = min(0.5, max(0., float(operator[3])))
 
             operator_text += '\n# Perform classification with a random forest classifier'
             operator_text += ('\nrfc{OPERATOR_NUM} = RandomForestClassifier('

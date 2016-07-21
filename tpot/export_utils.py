@@ -347,7 +347,7 @@ mnb{OPERATOR_NUM}.fit({OUTPUT_DF}.loc[training_indices].drop('class', axis=1).va
             penalty_values = ['l1', 'l2']
             penalty_selection = penalty_values[int(operator[4]) % len(penalty_values)]
 
-            C = min(50., max(0.0001, operator[3]))
+            C = min(50., max(0.0001, float(operator[3])))
 
             dual = bool(operator[5])
 
